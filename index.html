@@ -2,34 +2,50 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Green Electron App</title>
+  <title>Transparent App</title>
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
-      background-color: #4CAF50; /* Green background */
+      height: 100%;
+      overflow: hidden;
+      background-color: transparent;
+    }
+    body {
       font-family: Arial, sans-serif;
-      color: white;
-      height: 100vh;
+      color: black;
       display: flex;
       justify-content: center;
       align-items: center;
       text-align: center;
-      overflow: hidden;
+      cursor: default;
+      -webkit-user-select: none;
+      user-select: none;
     }
     .container {
       padding: 20px;
+      background-color: transparent;
+      border-radius: 10px;
     }
     h1 {
       margin: 0;
       font-size: 24px;
     }
+    .drag-area {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      -webkit-app-region: drag;
+    }
   </style>
 </head>
 <body>
+  <div class="drag-area"></div>
   <div class="container">
-    <h1>Green Electron App</h1>
-    <p>This is a small Electron window with a green background.</p>
+    <h1>Transparent Window</h1>
+    <p>This is black text on a transparent background.</p>
   </div>
 </body>
 </html> 
