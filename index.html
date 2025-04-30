@@ -24,9 +24,8 @@
     }
     .container {
       padding: 30px;
-      background-color: rgba(255, 255, 255, 0.8);
+      background-color: transparent;
       border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
       max-width: 80%;
       transition: opacity 0.5s ease-in-out;
     }
@@ -34,19 +33,19 @@
       font-size: 22px;
       font-weight: bold;
       margin-bottom: 10px;
-      color: #333;
+      color: black;
     }
     .message {
       font-size: 18px;
       line-height: 1.4;
-      color: #555;
+      color: black;
     }
     .queue-stats {
       position: absolute;
       bottom: 10px;
       right: 10px;
       font-size: 12px;
-      color: rgba(0, 0, 0, 0.5);
+      color: black;
     }
     .drag-area {
       position: absolute;
@@ -82,38 +81,117 @@
     const messageDisplay = document.getElementById('message-display');
     const queueStats = document.getElementById('queue-stats');
     
-    // Function to display the next message
-    function displayNextMessage() {
-      if (messageQueue.length === 0) {
+    // Animation variables
+    let animationRunning = false;
+    let lastTimestamp = 0;
+    let currentTimeout = null;
+    let timeElapsed = 0;
+    let fadeState = 'in'; // 'in', 'display', 'out'
+    let currentItem = null;
+    
+    // Force the renderer to keep working even when the page is in background
+    const forceRendering = () => {
+      // Create a tiny canvas element and change it slightly each frame
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext('2d');
+      let frame = 0;
+      
+      function tick() {
+        frame++;
+        // Draw something different each frame to force a redraw
+        ctx.fillStyle = `rgb(${frame % 255},0,0)`;
+        ctx.fillRect(0, 0, 1, 1);
+        requestAnimationFrame(tick);
+      }
+      
+      requestAnimationFrame(tick);
+    };
+    
+    // Start the animation system
+    function startAnimation() {
+      if (animationRunning) return;
+      animationRunning = true;
+      
+      // Initial setup
+      container.style.opacity = 0;
+      timeElapsed = 0;
+      fadeState = 'in';
+      
+      // Update the display once to ensure we have content
+      if (messageQueue.length > 0) {
+        currentItem = messageQueue[currentIndex];
+        nameDisplay.textContent = currentItem.name;
+        messageDisplay.textContent = currentItem.message;
+        queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
+      } else {
         nameDisplay.textContent = "No messages";
         messageDisplay.textContent = "Queue is empty";
         queueStats.textContent = "Queue: 0";
-        return;
       }
       
-      // Fade out
-      container.style.opacity = 0;
+      // Start animation loop
+      requestAnimationFrame(animationFrame);
+    }
+    
+    // Main animation frame
+    function animationFrame(timestamp) {
+      if (!animationRunning) return;
       
-      setTimeout(() => {
-        const item = messageQueue[currentIndex];
+      // Calculate delta time
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const deltaTime = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+      
+      // Update time elapsed
+      timeElapsed += deltaTime;
+      
+      // Handle different animation states
+      if (fadeState === 'in') {
+        // Fade in animation (500ms)
+        const progress = Math.min(timeElapsed / 500, 1);
+        container.style.opacity = progress.toString();
         
-        // Update display
-        nameDisplay.textContent = item.name;
-        messageDisplay.textContent = item.message;
-        queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
+        if (timeElapsed >= 500) {
+          fadeState = 'display';
+          timeElapsed = 0;
+          
+          // Speak the message
+          if (currentItem) {
+            speakMessage(currentItem.name, currentItem.message);
+          }
+        }
+      } else if (fadeState === 'display') {
+        // Display duration (8000ms)
+        if (timeElapsed >= 8000) {
+          fadeState = 'out';
+          timeElapsed = 0;
+        }
+      } else if (fadeState === 'out') {
+        // Fade out animation (500ms)
+        const progress = 1 - Math.min(timeElapsed / 500, 1);
+        container.style.opacity = progress.toString();
         
-        // Speak the message
-        speakMessage(item.name, item.message);
-        
-        // Fade in
-        container.style.opacity = 1;
-        
-        // Move to next message after delay
-        setTimeout(() => {
-          currentIndex = (currentIndex + 1) % messageQueue.length;
-          displayNextMessage();
-        }, 8000); // Display each message for 8 seconds
-      }, 500); // Wait for fade out
+        if (timeElapsed >= 500) {
+          // Move to next message
+          if (messageQueue.length > 0) {
+            currentIndex = (currentIndex + 1) % messageQueue.length;
+            currentItem = messageQueue[currentIndex];
+            
+            // Update display
+            nameDisplay.textContent = currentItem.name;
+            messageDisplay.textContent = currentItem.message;
+            queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
+          }
+          
+          fadeState = 'in';
+          timeElapsed = 0;
+        }
+      }
+      
+      // Continue animation loop
+      requestAnimationFrame(animationFrame);
     }
     
     // Function to speak the message using text-to-speech
@@ -139,10 +217,18 @@
       addMessage("New User", "This message was added dynamically!");
     }, 15000);
     
-    // Start displaying messages
-    container.style.opacity = 0;
+    // Start the force rendering to keep animations running in background
+    forceRendering();
+    
+    // Start the animation system
     setTimeout(() => {
-      displayNextMessage();
+      startAnimation();
+    }, 1000);
+    
+    // Keep the app running in background by triggering events
+    setInterval(() => {
+      // Create a dummy event to keep the page active
+      document.dispatchEvent(new CustomEvent('keepalive'));
     }, 1000);
   </script>
 </body>
