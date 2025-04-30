@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Transparent App</title>
+  <title>Message Display App</title>
   <style>
     html, body {
       margin: 0;
@@ -23,13 +23,30 @@
       user-select: none;
     }
     .container {
-      padding: 20px;
-      background-color: transparent;
-      border-radius: 10px;
+      padding: 30px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      max-width: 80%;
+      transition: opacity 0.5s ease-in-out;
     }
-    h1 {
-      margin: 0;
-      font-size: 24px;
+    .name {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .message {
+      font-size: 18px;
+      line-height: 1.4;
+      color: #555;
+    }
+    .queue-stats {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.5);
     }
     .drag-area {
       position: absolute;
@@ -43,9 +60,90 @@
 </head>
 <body>
   <div class="drag-area"></div>
-  <div class="container">
-    <h1>Transparent Window</h1>
-    <p>This is black text on a transparent background.</p>
+  <div class="container" id="message-container">
+    <div class="name" id="name-display">Loading messages...</div>
+    <div class="message" id="message-display">Please wait</div>
   </div>
+  <div class="queue-stats" id="queue-stats">Queue: 0</div>
+
+  <script>
+    // Message queue system
+    const messageQueue = [
+      { name: "Alice", message: "Hello, this is a test message!" },
+      { name: "Bob", message: "How does this system work?" },
+      { name: "Charlie", message: "This is a longer message to test how the display handles multi-line content that might wrap to multiple lines." },
+      { name: "David", message: "Testing text-to-speech functionality." },
+      { name: "Emma", message: "Final test message in the queue." }
+    ];
+    
+    let currentIndex = 0;
+    const container = document.getElementById('message-container');
+    const nameDisplay = document.getElementById('name-display');
+    const messageDisplay = document.getElementById('message-display');
+    const queueStats = document.getElementById('queue-stats');
+    
+    // Function to display the next message
+    function displayNextMessage() {
+      if (messageQueue.length === 0) {
+        nameDisplay.textContent = "No messages";
+        messageDisplay.textContent = "Queue is empty";
+        queueStats.textContent = "Queue: 0";
+        return;
+      }
+      
+      // Fade out
+      container.style.opacity = 0;
+      
+      setTimeout(() => {
+        const item = messageQueue[currentIndex];
+        
+        // Update display
+        nameDisplay.textContent = item.name;
+        messageDisplay.textContent = item.message;
+        queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
+        
+        // Speak the message
+        speakMessage(item.name, item.message);
+        
+        // Fade in
+        container.style.opacity = 1;
+        
+        // Move to next message after delay
+        setTimeout(() => {
+          currentIndex = (currentIndex + 1) % messageQueue.length;
+          displayNextMessage();
+        }, 8000); // Display each message for 8 seconds
+      }, 500); // Wait for fade out
+    }
+    
+    // Function to speak the message using text-to-speech
+    function speakMessage(name, message) {
+      if ('speechSynthesis' in window) {
+        const speech = new SpeechSynthesisUtterance();
+        speech.text = `${name} sent a message: ${message}`;
+        speech.volume = 1;
+        speech.rate = 1;
+        speech.pitch = 1;
+        window.speechSynthesis.speak(speech);
+      }
+    }
+    
+    // Add a new message to the queue
+    function addMessage(name, message) {
+      messageQueue.push({ name, message });
+      queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
+    }
+    
+    // For testing: Add a message after 15 seconds
+    setTimeout(() => {
+      addMessage("New User", "This message was added dynamically!");
+    }, 15000);
+    
+    // Start displaying messages
+    container.style.opacity = 0;
+    setTimeout(() => {
+      displayNextMessage();
+    }, 1000);
+  </script>
 </body>
 </html> 
