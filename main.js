@@ -1,5 +1,8 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, nativeImage } = require('electron')
 const path = require('path')
+
+// Set application name
+app.name = 'Message Display';
 
 // Create the browser window.
 const createWindow = () => {
@@ -16,9 +19,16 @@ const createWindow = () => {
       backgroundThrottling: false // Prevent throttling when in background
     },
     focusable: true,
-    skipTaskbar: false,
-    alwaysOnTop: false
+    skipTaskbar: false, // Make sure the window appears in taskbar/dock
+    alwaysOnTop: false,
+    show: true,
+    title: 'Message Display'
   })
+  
+  // Make sure the app shows in the dock on macOS
+  if (process.platform === 'darwin') {
+    app.dock.show();
+  }
   
   // Prevent the window from being garbage collected
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -44,6 +54,9 @@ app.on('ready', () => {
   // Add these switches to prevent background throttling
   app.commandLine.appendSwitch('high-dpi-support', 1);
   app.commandLine.appendSwitch('force-device-scale-factor', 1);
+  
+  // Don't hide the app from dock/taskbar
+  app.setActivationPolicy && app.setActivationPolicy('regular');
   
   createWindow();
 })

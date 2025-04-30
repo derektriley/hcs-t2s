@@ -1,14 +1,18 @@
 {
-  "name": "simple-electron-app",
+  "name": "message-display-app",
+  "productName": "Message Display",
   "version": "1.0.0",
-  "description": "A simple Electron desktop application",
+  "description": "A message display app for OBS screen capture",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "electron"
+    "electron",
+    "messaging",
+    "obs",
+    "screen-capture"
   ],
   "author": "",
   "license": "ISC",
