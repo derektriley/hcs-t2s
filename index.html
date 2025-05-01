@@ -21,6 +21,11 @@
       cursor: default;
       -webkit-user-select: none;
       user-select: none;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 15px;
+      margin: 5px;
+      height: calc(100% - 10px);
+      width: calc(100% - 10px);
     }
     .container {
       padding: 30px;
@@ -120,6 +125,9 @@
     let timeElapsed = 0;
     let fadeState = 'in'; // 'in', 'display', 'out'
     let currentItem = null;
+    
+    // Track messages we've already seen to prevent duplicates
+    const processedMessages = new Set();
     
     // Force the renderer to keep working even when the page is in background
     const forceRendering = () => {
@@ -251,7 +259,16 @@
     
     // Function to speak the message using text-to-speech
     function speakMessage(name, message) {
+      // Don't speak system messages
+      if (name === "System") {
+        console.log("Skipping TTS for system message");
+        return;
+      }
+      
       if ('speechSynthesis' in window) {
+        // Cancel any pending speech first
+        window.speechSynthesis.cancel();
+        
         const speech = new SpeechSynthesisUtterance();
         speech.text = `${name} sent a message: ${message}`;
         speech.volume = 1;
@@ -263,7 +280,32 @@
     
     // Add a new message to the queue
     function addMessage(name, message) {
+      // Create a unique identifier for this message
+      const messageId = `${name}:${message}:${Date.now()}`;
+      
+      // Skip if we've seen this exact message in the last second
+      // This helps prevent duplicate TTS for the same message
+      for (const id of processedMessages) {
+        const [oldName, oldMessage, timestamp] = id.split(':', 3);
+        
+        // If same name/message and received within last 3 seconds, ignore it
+        if (oldName === name && oldMessage === message && 
+            Date.now() - parseInt(timestamp) < 3000) {
+          console.log('Ignoring duplicate message:', message);
+          return;
+        }
+      }
+      
+      // Add to processed set and queue
+      processedMessages.add(messageId);
       messageQueue.push({ name, message });
+      
+      // Limit size of processed set to avoid memory leaks
+      if (processedMessages.size > 100) {
+        const iterator = processedMessages.values();
+        processedMessages.delete(iterator.next().value);
+      }
+      
       // Update the queue counter
       const remaining = messageQueue.length - currentIndex;
       queueStats.textContent = `Queue: ${remaining > 0 ? remaining : messageQueue.length}`;

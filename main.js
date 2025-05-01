@@ -54,7 +54,8 @@ const createWindow = () => {
     skipTaskbar: false, // Make sure the window appears in taskbar/dock
     alwaysOnTop: false,
     show: true,
-    title: 'Message Display'
+    title: 'Message Display',
+    icon: path.join(__dirname, 'assets/beaver.png')
   })
   
   // Make sure the app shows in the dock on macOS

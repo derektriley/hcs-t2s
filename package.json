@@ -31,5 +31,16 @@
     "@hashgraph/sdk": "^2.63.0",
     "dotenv": "^16.5.0",
     "yargs": "^17.7.2"
+  },
+  "build": {
+    "mac": {
+      "icon": "assets/beaver.png"
+    },
+    "win": {
+      "icon": "assets/beaver.png"
+    },
+    "linux": {
+      "icon": "assets/beaver.png"
+    }
   }
 }
