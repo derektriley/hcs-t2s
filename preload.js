@@ -22,4 +22,8 @@ contextBridge.exposeInMainWorld(
       }
     }
   }
-); 
+);
+
+contextBridge.exposeInMainWorld('tts', {
+  generateSpeech: (name, message) => ipcRenderer.invoke('generate-speech', { name, message })
+}); 

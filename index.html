@@ -198,42 +198,81 @@
       requestAnimationFrame(animationFrame);
     }
     
-    // Function to speak the message using text-to-speech
+    // Function to speak the message using ElevenLabs TTS
     function speakMessage(name, message) {
       // Don't speak system messages
       if (name === "System") {
         console.log("Skipping TTS for system message");
-        return Promise.resolve(); // Return resolved promise for system messages
+        return Promise.resolve();
       }
       
+      return new Promise((resolve) => {
+        // Try to use ElevenLabs if available
+        if (window.tts) {
+          window.tts.generateSpeech(name, message)
+            .then(result => {
+              if (result.success) {
+                // Create an audio element to play the sound
+                const audio = new Audio(`file://${result.audioPath}`);
+                
+                // Set up event handlers
+                audio.onended = () => {
+                  console.log("ElevenLabs TTS playback completed");
+                  resolve();
+                };
+                
+                audio.onerror = (e) => {
+                  console.error("Audio playback error:", e);
+                  resolve(); // Resolve anyway to prevent blocking
+                };
+                
+                // Play the audio
+                audio.play().catch(err => {
+                  console.error("Error playing audio:", err);
+                  resolve();
+                });
+              } else {
+                console.error("TTS generation failed:", result.error);
+                fallbackToBuiltInTTS(name, message, resolve);
+              }
+            })
+            .catch(error => {
+              console.error("Error with ElevenLabs TTS:", error);
+              fallbackToBuiltInTTS(name, message, resolve);
+            });
+        } else {
+          // Fall back to browser's built-in TTS if ElevenLabs is not available
+          fallbackToBuiltInTTS(name, message, resolve);
+        }
+      });
+    }
+    
+    // Fallback to browser's built-in TTS
+    function fallbackToBuiltInTTS(name, message, resolve) {
       if ('speechSynthesis' in window) {
         // Cancel any pending speech first
         window.speechSynthesis.cancel();
         
-        return new Promise((resolve) => {
-          const speech = new SpeechSynthesisUtterance();
-          speech.text = `${name} sent a message: ${message}`;
-          speech.volume = 1;
-          speech.rate = 1;
-          speech.pitch = 1;
-          
-          // Add event listener for when speech completes
-          speech.onend = () => {
-            console.log("Speech completed");
-            // Add 1 second delay after speech completes
-            setTimeout(resolve, 1000);
-          };
-          
-          // Add error handler in case speech fails
-          speech.onerror = (event) => {
-            console.error("Speech error:", event);
-            resolve(); // Resolve anyway to prevent blocking
-          };
-          
-          window.speechSynthesis.speak(speech);
-        });
+        const speech = new SpeechSynthesisUtterance();
+        speech.text = `${name} sent a message: ${message}`;
+        speech.volume = 1;
+        speech.rate = 1;
+        speech.pitch = 1;
+        
+        // Add event listener for when speech completes
+        speech.onend = () => {
+          console.log("Built-in TTS completed");
+          resolve();
+        };
+        
+        speech.onerror = (event) => {
+          console.error("Speech error:", event);
+          resolve();
+        };
+        
+        window.speechSynthesis.speak(speech);
       } else {
-        return Promise.resolve(); // Return resolved promise if speech synthesis not available
+        resolve(); // No TTS available
       }
     }
     

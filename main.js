@@ -2,6 +2,7 @@ const { app, BrowserWindow, nativeImage, ipcMain } = require('electron')
 const path = require('path')
 const HederaClient = require('./hedera-client')
 const fs = require('fs')
+const ElevenLabsTTS = require('./eleven-labs-tts')
 
 // Set application name
 app.name = 'Message Display';
@@ -34,6 +35,9 @@ try {
 // Initialize Hedera client
 const hederaClient = new HederaClient();
 let mainWindow;
+
+// Initialize the TTS service
+const ttsService = new ElevenLabsTTS(process.env.ELEVEN_LABS_API_KEY);
 
 // Create the browser window.
 const createWindow = () => {
@@ -221,6 +225,18 @@ ipcMain.on('submit-message', async (event, message) => {
   } catch (error) {
     console.error('Error submitting message:', error);
     event.reply('hcs-connection-status', { connected: false, error: error.message });
+  }
+});
+
+// Add IPC handler for TTS requests
+ipcMain.handle('generate-speech', async (event, { name, message }) => {
+  try {
+    const text = `${name} sent a message: ${message}`;
+    const audioPath = await ttsService.generateSpeech(text);
+    return { success: true, audioPath };
+  } catch (error) {
+    console.error('TTS error:', error);
+    return { success: false, error: error.message };
   }
 });
 
