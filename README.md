@@ -1,4 +1,4 @@
-# HCS TTS
+# HCS (Hedera Consensus Service) TTS (Text to Speech)
 
 A real-time message streaming application that displays and reads out messages from a Hedera Consensus Service (HCS) topic. Built with Electron and featuring text-to-speech capabilities.
 
