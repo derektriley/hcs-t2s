@@ -107,9 +107,7 @@
 
   <script>
     // Message queue system
-    const messageQueue = [
-      { name: "System", message: "Waiting for HCS messages..." }
-    ];
+    const messageQueue = [];
     
     let currentIndex = 0;
     const container = document.getElementById('message-container');
@@ -189,8 +187,8 @@
         messageDisplay.textContent = currentItem.message;
         queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
       } else {
-        nameDisplay.textContent = "No messages";
-        messageDisplay.textContent = "Queue is empty";
+        // Hide the container when there are no messages
+        container.style.display = 'none';
         queueStats.textContent = "Queue: 0";
       }
       
@@ -209,37 +207,62 @@
       return new Promise((resolve) => {
         // Try to use ElevenLabs if available
         if (window.tts) {
-          window.tts.generateSpeech(name, message)
-            .then(result => {
-              if (result.success) {
-                // Create an audio element to play the sound
-                const audio = new Audio(`file://${result.audioPath}`);
-                
-                // Set up event handlers
-                audio.onended = () => {
-                  console.log("ElevenLabs TTS playback completed");
-                  resolve();
-                };
-                
-                audio.onerror = (e) => {
-                  console.error("Audio playback error:", e);
-                  resolve(); // Resolve anyway to prevent blocking
-                };
-                
-                // Play the audio
-                audio.play().catch(err => {
-                  console.error("Error playing audio:", err);
-                  resolve();
-                });
-              } else {
-                console.error("TTS generation failed:", result.error);
-                fallbackToBuiltInTTS(name, message, resolve);
-              }
-            })
-            .catch(error => {
-              console.error("Error with ElevenLabs TTS:", error);
-              fallbackToBuiltInTTS(name, message, resolve);
+          // Check if we already have the audio path
+          const currentMessage = messageQueue[currentIndex];
+          if (currentMessage && currentMessage.audioPath) {
+            // Create an audio element to play the sound
+            const audio = new Audio(`file://${currentMessage.audioPath}`);
+            
+            // Set up event handlers
+            audio.onended = () => {
+              console.log("ElevenLabs TTS playback completed");
+              resolve();
+            };
+            
+            audio.onerror = (e) => {
+              console.error("Audio playback error:", e);
+              resolve(); // Resolve anyway to prevent blocking
+            };
+            
+            // Play the audio
+            audio.play().catch(err => {
+              console.error("Error playing audio:", err);
+              resolve();
             });
+          } else {
+            // If we don't have the audio yet, generate it now
+            window.tts.generateSpeech(name, message)
+              .then(result => {
+                if (result.success) {
+                  // Create an audio element to play the sound
+                  const audio = new Audio(`file://${result.audioPath}`);
+                  
+                  // Set up event handlers
+                  audio.onended = () => {
+                    console.log("ElevenLabs TTS playback completed");
+                    resolve();
+                  };
+                  
+                  audio.onerror = (e) => {
+                    console.error("Audio playback error:", e);
+                    resolve(); // Resolve anyway to prevent blocking
+                  };
+                  
+                  // Play the audio
+                  audio.play().catch(err => {
+                    console.error("Error playing audio:", err);
+                    resolve();
+                  });
+                } else {
+                  console.error("TTS generation failed:", result.error);
+                  fallbackToBuiltInTTS(name, message, resolve);
+                }
+              })
+              .catch(error => {
+                console.error("Error with ElevenLabs TTS:", error);
+                fallbackToBuiltInTTS(name, message, resolve);
+              });
+          }
         } else {
           // Fall back to browser's built-in TTS if ElevenLabs is not available
           fallbackToBuiltInTTS(name, message, resolve);
@@ -369,6 +392,14 @@
       processedMessages.add(messageId);
       messageQueue.push({ name, message });
       
+      // Show the container when we get our first message
+      if (messageQueue.length === 1) {
+        container.style.display = 'block';
+        currentItem = messageQueue[0];
+        nameDisplay.textContent = currentItem.name;
+        messageDisplay.textContent = currentItem.message;
+      }
+      
       // Limit size of processed set to avoid memory leaks
       if (processedMessages.size > 100) {
         const iterator = processedMessages.values();
@@ -388,10 +419,31 @@
         hcsStatus.innerHTML = formatHcsStatus(status);
       });
       
+      // Handle queue updates
+      window.api.receive('queue-update', (count) => {
+        console.log('Queue update:', count);
+        queueStats.textContent = `Queue: ${count}`;
+      });
+      
       // Handle incoming messages
       window.api.receive('hcs-message', (message) => {
         console.log('Received HCS message:', message);
         if (message && message.name && message.message) {
+          // Start TTS generation immediately
+          if (window.tts) {
+            window.tts.generateSpeech(message.name, message.message)
+              .then(result => {
+                if (result.success) {
+                  // Store the audio path for later use
+                  message.audioPath = result.audioPath;
+                }
+              })
+              .catch(error => {
+                console.error("Error with ElevenLabs TTS:", error);
+              });
+          }
+          
+          // Add to queue and display
           addMessage(message.name, message.message);
         }
       });

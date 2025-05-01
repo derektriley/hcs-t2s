@@ -62,7 +62,7 @@ const createWindow = () => {
     focusable: true,
     skipTaskbar: false, // Make sure the window appears in taskbar/dock
     alwaysOnTop: true, // Keep overlay on top by default
-    show: true,
+    show: false, // Start hidden
     title: 'Message Display',
     icon: path.join(__dirname, 'assets/hedera.png')
   })
@@ -183,8 +183,15 @@ function initializeHedera() {
           timestamp: new Date()
         });
         
+        // Start TTS generation immediately
+        const text = `${message.name} sent a message: ${message.message}`;
+        ttsService.generateSpeech(text).catch(error => {
+          console.error('TTS generation error:', error);
+        });
+        
         // Send to display window
         mainWindow.webContents.send('hcs-message', message);
+        mainWindow.webContents.send('queue-update', messageQueue.length);
         
         // Send to dashboard window
         if (dashboardWindow) {
@@ -251,7 +258,10 @@ function updateQueue() {
     // Remove the first message from the queue (it's been displayed)
     messageQueue.shift();
     
-    // Update the dashboard with the new queue length
+    // Update both windows with the new queue length
+    if (mainWindow) {
+      mainWindow.webContents.send('queue-update', messageQueue.length);
+    }
     if (dashboardWindow) {
       dashboardWindow.webContents.send('queue-update', messageQueue.length);
     }
@@ -300,27 +310,8 @@ ipcMain.on('create-topic', async (event) => {
         dashboardWindow.webContents.send('hcs-connection-status', status);
       }
       
-      // Subscribe to the newly created topic
-      hederaClient.subscribeToTopic((message) => {
-        console.log('Received message:', message);
-        if (typeof message === 'object' && message.name && message.message) {
-          // Add to message queue and history
-          messageQueue.push(message);
-          messageHistory.push({
-            ...message,
-            timestamp: new Date()
-          });
-          
-          // Send to display window
-          mainWindow.webContents.send('hcs-message', message);
-          
-          // Send to dashboard window
-          if (dashboardWindow) {
-            dashboardWindow.webContents.send('hcs-message', message);
-            dashboardWindow.webContents.send('queue-update', messageQueue.length);
-          }
-        }
-      });
+      // No need to subscribe again as we already have a subscription
+      // Just update the status
     } else {
       const status = { connected: false, error: 'Failed to create topic' };
       event.reply('hcs-connection-status', status);
@@ -422,6 +413,18 @@ ipcMain.on('toggle-overlay', (event, show) => {
       dashboardWindow.webContents.send('overlay-state', show);
     }
   }
+});
+
+// Add IPC handler for topic ID updates
+ipcMain.on('update-topic', (event, newTopicId) => {
+  console.log('Updating topic ID to:', newTopicId);
+  hederaTopicId = newTopicId;
+  
+  // Reinitialize Hedera client with new topic ID
+  if (hederaClient) {
+    hederaClient.close();
+  }
+  initializeHedera();
 });
 
 // This method will be called when Electron has finished

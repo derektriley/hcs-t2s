@@ -160,6 +160,53 @@
       color: white;
     }
 
+    /* Topic ID input styles */
+    .topic-input-container {
+      padding: 10px;
+      background-color: #2d2d2d;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topic-input-label {
+      font-size: 14px;
+      color: #bbbbbb;
+      white-space: nowrap;
+    }
+
+    .topic-input {
+      width: 200px;
+      background-color: #3d3d3d;
+      border: 1px solid #4d4d4d;
+      color: #f0f0f0;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .topic-input:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+
+    .skip-button {
+      background-color: #3d3d3d;
+      border: 1px solid #4d4d4d;
+      color: #f0f0f0;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-left: auto;
+    }
+
+    .skip-button:hover {
+      background-color: #4d4d4d;
+    }
+
     /* Toggle switch styles */
     .toggle-container {
       display: flex;
@@ -223,17 +270,17 @@
     <div class="header">
       <div class="stats-container">
         <div class="stat-box">
-          <div class="stat-value" id="queue-count">0</div>
-          <div class="stat-label">Messages Queued</div>
+          <div class="stat-value" id="queued-count">0</div>
+          <div class="stat-label">Queued</div>
         </div>
         <div class="stat-box">
           <div class="stat-value" id="total-count">0</div>
-          <div class="stat-label">Total Messages</div>
+          <div class="stat-label">Total</div>
         </div>
       </div>
       <div class="connection-status">
-        <div class="status-indicator" id="connection-indicator"></div>
-        <span id="connection-status">Disconnected</span>
+        <div class="status-indicator" id="connection-status"></div>
+        <span id="connection-text">Disconnected</span>
       </div>
       <div class="toggle-container">
         <span class="toggle-label">Show Overlay</span>
@@ -243,6 +290,13 @@
         </label>
       </div>
     </div>
+
+    <div class="topic-input-container">
+      <span class="topic-input-label">Topic ID:</span>
+      <input type="text" class="topic-input" id="topic-id" value="0.0.5931541">
+      <button class="skip-button" id="skip-button">Skip</button>
+    </div>
+
     <div class="messages-container">
       <div class="messages-header">Message History</div>
       <div class="messages-list" id="messages-list">
@@ -253,10 +307,10 @@
 
   <script>
     // Initialize dashboard functionality
-    const queueCountElement = document.getElementById('queue-count');
+    const queueCountElement = document.getElementById('queued-count');
     const totalCountElement = document.getElementById('total-count');
-    const connectionIndicator = document.getElementById('connection-indicator');
-    const connectionStatus = document.getElementById('connection-status');
+    const connectionIndicator = document.getElementById('connection-status');
+    const connectionStatus = document.getElementById('connection-text');
     const messagesList = document.getElementById('messages-list');
     const overlayToggle = document.getElementById('overlay-toggle');
     
@@ -375,6 +429,21 @@
         overlayToggle.checked = isVisible;
       });
     }
+
+    // Handle topic ID changes
+    const topicInput = document.getElementById('topic-id');
+    topicInput.addEventListener('change', () => {
+      const newTopicId = topicInput.value.trim();
+      if (newTopicId) {
+        window.api.send('update-topic', newTopicId);
+      }
+    });
+
+    // Handle skip button
+    const skipButton = document.getElementById('skip-button');
+    skipButton.addEventListener('click', () => {
+      window.api.send('skip-message');
+    });
   </script>
 </body>
 </html> 
