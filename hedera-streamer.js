@@ -8,7 +8,8 @@ const {
   AccountId,
   Hbar,
   CustomFixedFee,
-  CustomRoyaltyFee
+  CustomRoyaltyFee,
+  TopicId
 } = require("@hashgraph/sdk");
 require('dotenv').config();
 const yargs = require('yargs/yargs');
@@ -179,7 +180,7 @@ async function submitMessage(topicId, messageNumber) {
   
   try {
     const transaction = new TopicMessageSubmitTransaction()
-      .setTopicId(topicId)
+      .setTopicId(TopicId.fromString(topicId))
       .setMessage(JSON.stringify(message));
     
     const txResponse = await transaction.execute(viewerClient);

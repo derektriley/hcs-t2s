@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld(
     },
     // Send message to main process
     send: (channel, data) => {
-      const validChannels = ['create-topic', 'submit-message', 'toggle-overlay', 'update-topic', 'skip-message'];
+      const validChannels = ['create-topic', 'submit-message', 'toggle-overlay', 'update-topic', 'skip-message', 'tts-complete'];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, data);
       }

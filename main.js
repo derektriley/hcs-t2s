@@ -44,8 +44,8 @@ let messageQueue = [];
 // Initialize the TTS service
 const ttsService = new ElevenLabsTTS(process.env.ELEVEN_LABS_API_KEY);
 
-// Create the display window
-const createWindow = () => {
+// Create just the message window
+const createMessageWindow = () => {
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 400,
@@ -84,6 +84,20 @@ const createWindow = () => {
 
   // Remove menu bar
   mainWindow.setMenuBarVisibility(false)
+
+  // Handle main window close event
+  mainWindow.on('close', () => {
+    // Notify dashboard that overlay is hidden
+    if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+      dashboardWindow.webContents.send('overlay-state', false);
+    }
+  });
+}
+
+// Create the display window
+const createWindow = () => {
+  // Create the message window
+  createMessageWindow();
   
   // Create the dashboard window
   createDashboardWindow();
@@ -384,34 +398,37 @@ ipcMain.handle('generate-speech', async (event, { name, message }) => {
     const text = `${name} sent a message: ${message}`;
     const audioPath = await ttsService.generateSpeech(text);
     
-    // Update the queue after speech is generated (message is being processed)
-    updateQueue();
-    
+    // Don't update the queue here - it will be updated after playback completes
     return { success: true, audioPath };
   } catch (error) {
     console.error('TTS error:', error);
-    
-    // Update the queue even if there's an error with TTS
-    updateQueue();
-    
     return { success: false, error: error.message };
   }
 });
 
+// Add IPC handler for TTS playback completion
+ipcMain.on('tts-complete', () => {
+  // Update the queue after TTS playback is complete
+  updateQueue();
+});
+
 // Add IPC handler for overlay toggle
 ipcMain.on('toggle-overlay', (event, show) => {
-  if (mainWindow) {
-    if (show) {
+  if (show) {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      // Recreate just the message window if it doesn't exist or was destroyed
+      createMessageWindow();
+    } else {
       mainWindow.show();
       mainWindow.setAlwaysOnTop(true);
-    } else {
-      mainWindow.hide();
     }
-    
-    // Notify the dashboard of the current state
-    if (dashboardWindow) {
-      dashboardWindow.webContents.send('overlay-state', show);
-    }
+  } else if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.hide();
+  }
+  
+  // Notify the dashboard of the current state
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+    dashboardWindow.webContents.send('overlay-state', show);
   }
 });
 

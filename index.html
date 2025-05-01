@@ -210,12 +210,22 @@
           // Check if we already have the audio path
           const currentMessage = messageQueue[currentIndex];
           if (currentMessage && currentMessage.audioPath) {
+            // Update display before playing audio
+            nameDisplay.textContent = currentMessage.name;
+            messageDisplay.textContent = currentMessage.message;
+            container.style.display = 'block';
+            container.style.opacity = '1';
+            
             // Create an audio element to play the sound
             const audio = new Audio(`file://${currentMessage.audioPath}`);
             
             // Set up event handlers
             audio.onended = () => {
               console.log("ElevenLabs TTS playback completed");
+              // Notify main process that TTS playback is complete
+              if (window.api) {
+                window.api.send('tts-complete');
+              }
               resolve();
             };
             
@@ -234,12 +244,22 @@
             window.tts.generateSpeech(name, message)
               .then(result => {
                 if (result.success) {
+                  // Update display before playing audio
+                  nameDisplay.textContent = name;
+                  messageDisplay.textContent = message;
+                  container.style.display = 'block';
+                  container.style.opacity = '1';
+                  
                   // Create an audio element to play the sound
                   const audio = new Audio(`file://${result.audioPath}`);
                   
                   // Set up event handlers
                   audio.onended = () => {
                     console.log("ElevenLabs TTS playback completed");
+                    // Notify main process that TTS playback is complete
+                    if (window.api) {
+                      window.api.send('tts-complete');
+                    }
                     resolve();
                   };
                   
@@ -273,6 +293,12 @@
     // Fallback to browser's built-in TTS
     function fallbackToBuiltInTTS(name, message, resolve) {
       if ('speechSynthesis' in window) {
+        // Update display before playing audio
+        nameDisplay.textContent = name;
+        messageDisplay.textContent = message;
+        container.style.display = 'block';
+        container.style.opacity = '1';
+        
         // Cancel any pending speech first
         window.speechSynthesis.cancel();
         
@@ -355,9 +381,7 @@
             currentIndex = (currentIndex + 1) % messageQueue.length;
             currentItem = messageQueue[currentIndex];
             
-            // Update display
-            nameDisplay.textContent = currentItem.name;
-            messageDisplay.textContent = currentItem.message;
+            // Update queue counter
             queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
           }
           
@@ -392,23 +416,15 @@
       processedMessages.add(messageId);
       messageQueue.push({ name, message });
       
-      // Show the container when we get our first message
-      if (messageQueue.length === 1) {
-        container.style.display = 'block';
-        currentItem = messageQueue[0];
-        nameDisplay.textContent = currentItem.name;
-        messageDisplay.textContent = currentItem.message;
-      }
+      // Update the queue counter
+      const remaining = messageQueue.length - currentIndex;
+      queueStats.textContent = `Queue: ${remaining > 0 ? remaining : messageQueue.length}`;
       
       // Limit size of processed set to avoid memory leaks
       if (processedMessages.size > 100) {
         const iterator = processedMessages.values();
         processedMessages.delete(iterator.next().value);
       }
-      
-      // Update the queue counter
-      const remaining = messageQueue.length - currentIndex;
-      queueStats.textContent = `Queue: ${remaining > 0 ? remaining : messageQueue.length}`;
     }
     
     // Listen for HCS messages from the main process
