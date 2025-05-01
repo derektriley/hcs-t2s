@@ -26,5 +26,9 @@
   "bugs": {
     "url": "https://github.com/derektriley/hcs-t2s/issues"
   },
-  "homepage": "https://github.com/derektriley/hcs-t2s#readme"
+  "homepage": "https://github.com/derektriley/hcs-t2s#readme",
+  "dependencies": {
+    "@hashgraph/sdk": "^2.63.0",
+    "dotenv": "^16.5.0"
+  }
 }
