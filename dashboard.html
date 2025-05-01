@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Streamer Dashboard</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    
+    .dashboard-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background-color: #2d2d2d;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    
+    .stats-container {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .stat-box {
+      background-color: #3d3d3d;
+      padding: 10px 15px;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #bbbbbb;
+    }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #cc0000;
+    }
+    
+    .status-indicator.connected {
+      background-color: #00cc00;
+    }
+    
+    .messages-container {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .messages-header {
+      padding: 10px;
+      background-color: #2d2d2d;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      font-weight: bold;
+    }
+    
+    .messages-list {
+      flex: 1;
+      overflow-y: auto;
+      background-color: #252525;
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+      padding: 0;
+    }
+    
+    .message-item {
+      padding: 10px 15px;
+      border-bottom: 1px solid #3d3d3d;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .message-item:last-child {
+      border-bottom: none;
+    }
+    
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    
+    .message-sender {
+      font-weight: bold;
+    }
+    
+    .message-time {
+      font-size: 12px;
+      color: #bbbbbb;
+    }
+    
+    .message-content {
+      word-break: break-word;
+    }
+    
+    .network-badge {
+      display: inline-block;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+      margin-left: 5px;
+    }
+    
+    .network-testnet {
+      background-color: #6c757d;
+      color: white;
+    }
+    
+    .network-mainnet {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .network-previewnet {
+      background-color: #17a2b8;
+      color: white;
+    }
+    
+    .network-custom {
+      background-color: #fd7e14;
+      color: white;
+    }
+    
+    .readonly-badge {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    /* Toggle switch styles */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle-label {
+      font-size: 14px;
+      color: #bbbbbb;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #3d3d3d;
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+      background-color: #28a745;
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(26px);
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <div class="header">
+      <div class="stats-container">
+        <div class="stat-box">
+          <div class="stat-value" id="queue-count">0</div>
+          <div class="stat-label">Messages Queued</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="total-count">0</div>
+          <div class="stat-label">Total Messages</div>
+        </div>
+      </div>
+      <div class="connection-status">
+        <div class="status-indicator" id="connection-indicator"></div>
+        <span id="connection-status">Disconnected</span>
+      </div>
+      <div class="toggle-container">
+        <span class="toggle-label">Show Overlay</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="overlay-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="messages-container">
+      <div class="messages-header">Message History</div>
+      <div class="messages-list" id="messages-list">
+        <!-- Messages will be added here dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize dashboard functionality
+    const queueCountElement = document.getElementById('queue-count');
+    const totalCountElement = document.getElementById('total-count');
+    const connectionIndicator = document.getElementById('connection-indicator');
+    const connectionStatus = document.getElementById('connection-status');
+    const messagesList = document.getElementById('messages-list');
+    const overlayToggle = document.getElementById('overlay-toggle');
+    
+    // Track message history
+    const messageHistory = [];
+    let totalMessages = 0;
+    let queuedMessages = 0;
+    
+    // Function to update stats display
+    function updateStats() {
+      queueCountElement.textContent = queuedMessages.toString();
+      totalCountElement.textContent = totalMessages.toString();
+    }
+    
+    // Function to add a message to the history
+    function addMessage(message) {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      
+      // Create message element
+      const messageElement = document.createElement('div');
+      messageElement.className = 'message-item';
+      
+      // Create message header (sender and time)
+      const messageHeader = document.createElement('div');
+      messageHeader.className = 'message-header';
+      
+      const sender = document.createElement('span');
+      sender.className = 'message-sender';
+      sender.textContent = message.name || 'System';
+      
+      const time = document.createElement('span');
+      time.className = 'message-time';
+      time.textContent = timeString;
+      
+      messageHeader.appendChild(sender);
+      messageHeader.appendChild(time);
+      
+      // Create message content
+      const content = document.createElement('div');
+      content.className = 'message-content';
+      content.textContent = message.message || message.toString();
+      
+      // Add all elements to the message item
+      messageElement.appendChild(messageHeader);
+      messageElement.appendChild(content);
+      
+      // Add to the list
+      messagesList.prepend(messageElement);
+      
+      // Add to the history array
+      messageHistory.push({
+        ...message,
+        timestamp: now
+      });
+      
+      // Update stats
+      totalMessages++;
+      updateStats();
+    }
+    
+    // Format HCS status
+    function formatHcsStatus(status) {
+      connectionIndicator.className = status.connected 
+        ? 'status-indicator connected' 
+        : 'status-indicator';
+        
+      let statusText = '';
+      let networkBadge = '';
+      let readOnlyBadge = '';
+      
+      if (status.network) {
+        networkBadge = `<span class="network-badge network-${status.network}">${status.network}</span>`;
+      }
+      
+      if (status.readOnly) {
+        readOnlyBadge = `<span class="network-badge readonly-badge">read-only</span>`;
+      }
+      
+      if (status.connected) {
+        statusText = `Connected to topic ${status.topicId}${networkBadge}${readOnlyBadge}`;
+      } else {
+        statusText = `Disconnected (${status.error || 'unknown error'})${networkBadge}${readOnlyBadge}`;
+      }
+      
+      connectionStatus.innerHTML = statusText;
+    }
+    
+    // Handle overlay toggle
+    overlayToggle.addEventListener('change', (event) => {
+      if (window.api) {
+        window.api.send('toggle-overlay', event.target.checked);
+      }
+    });
+    
+    // Listen for messages from the main process
+    if (window.api) {
+      // Listen for HCS messages
+      window.api.receive('hcs-message', (message) => {
+        addMessage(message);
+      });
+      
+      // Listen for queue updates
+      window.api.receive('queue-update', (count) => {
+        queuedMessages = count;
+        updateStats();
+      });
+      
+      // Listen for connection status
+      window.api.receive('hcs-connection-status', (status) => {
+        formatHcsStatus(status);
+      });
+
+      // Listen for overlay state updates
+      window.api.receive('overlay-state', (isVisible) => {
+        overlayToggle.checked = isVisible;
+      });
+    }
+  </script>
+</body>
+</html> 

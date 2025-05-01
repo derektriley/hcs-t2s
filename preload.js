@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld(
   'api', {
     // Receive message from main process
     receive: (channel, func) => {
-      const validChannels = ['hcs-message', 'hcs-connection-status'];
+      const validChannels = ['hcs-message', 'hcs-connection-status', 'queue-update', 'overlay-state'];
       if (validChannels.includes(channel)) {
         // Remove the event listener to avoid memory leaks
         ipcRenderer.removeAllListeners(channel);
@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld(
     },
     // Send message to main process
     send: (channel, data) => {
-      const validChannels = ['create-topic', 'submit-message'];
+      const validChannels = ['create-topic', 'submit-message', 'toggle-overlay'];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, data);
       }
