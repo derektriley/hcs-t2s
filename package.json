@@ -29,6 +29,7 @@
   "homepage": "https://github.com/derektriley/hcs-t2s#readme",
   "dependencies": {
     "@hashgraph/sdk": "^2.63.0",
-    "dotenv": "^16.5.0"
+    "dotenv": "^16.5.0",
+    "yargs": "^17.7.2"
   }
 }
