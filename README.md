@@ -10,6 +10,7 @@ A transparent message display app that integrates with Hedera Consensus Service 
 - Message queue system with fade animations
 - OBS-friendly background rendering
 - Support for Hedera testnet, mainnet, previewnet, and custom/solo networks
+- Read-only mode (no credentials needed to subscribe to topics)
 
 ## Installation
 
@@ -23,11 +24,11 @@ npm install
 Create a `.env` file in the root directory (or copy from `.env-example`):
 
 ```
-# Hedera Testnet credentials
+# Hedera Testnet credentials (optional for read-only)
 HEDERA_ACCOUNT_ID=0.0.YOUR_ACCOUNT_ID
 HEDERA_PRIVATE_KEY=YOUR_PRIVATE_KEY
 
-# Topic ID to listen to
+# Topic ID to listen to (required)
 HEDERA_TOPIC_ID=0.0.YOUR_TOPIC_ID
 
 # Hedera network (testnet, previewnet, or mainnet)
@@ -39,6 +40,8 @@ HEDERA_NETWORK=testnet
 # HEDERA_CUSTOM_MIRROR_ENDPOINT=localhost:5600
 ```
 
+> **Note**: Credentials (account ID and private key) are optional if you only want to subscribe to a topic and read messages. They are required only for creating topics or sending messages.
+
 ## Running the Application
 
 ```bash
@@ -49,10 +52,21 @@ npm start
 
 ### Public Network (Testnet/Previewnet/Mainnet)
 
+#### Read-Only Mode (No Credentials Required)
+
+1. Set the `HEDERA_TOPIC_ID` in your `.env` file to the topic you want to subscribe to
+2. Run the application with `npm start`
+
+The app will run in read-only mode, displaying and announcing messages from the topic.
+
+#### Full Mode (Credentials Required)
+
 1. Obtain a Hedera testnet account from [Hedera Portal](https://portal.hedera.com)
 2. Create a topic using the Hedera Console or programmatically
 3. Update your `.env` file with your account ID, private key, and topic ID
 4. Run the application with `npm start`
+
+With credentials, you can create new topics and submit messages.
 
 ### Custom/Solo Network
 
@@ -60,15 +74,12 @@ To connect to a solo Hedera network deployment:
 
 1. Set up your custom Hedera network (either locally or on a server)
 2. Update the `.env` file with:
-   - Your account ID on the custom network
-   - Your private key for that account
-   - The topic ID (if already created)
+   - The topic ID (required)
+   - Your account ID and private key (optional, only if you want to submit messages)
    - Uncomment and configure the custom endpoint settings
 
-Example configuration for a local solo network:
+Example configuration for a local solo network (read-only):
 ```
-HEDERA_ACCOUNT_ID=0.0.2
-HEDERA_PRIVATE_KEY=302e020100300506032b65700422042091afd14923120d27b1a1a836d45c77ece78d96afa07dbe22c44eae795d15193c
 HEDERA_TOPIC_ID=0.0.1022
 HEDERA_NETWORK=custom
 HEDERA_CUSTOM_ENDPOINT=localhost:50211

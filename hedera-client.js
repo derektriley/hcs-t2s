@@ -15,42 +15,78 @@ class HederaClient {
     this.accountId = null;
     this.privateKey = null;
     this.listeners = [];
+    this.mirrorNodeUrl = null;
   }
 
-  // Initialize client with credentials
+  // Initialize client with credentials (optional for read-only operations)
   init(accountId, privateKey, network = "testnet", topicId = null, customEndpoint = null) {
     try {
-      this.accountId = accountId;
-      this.privateKey = privateKey;
       this.topicId = topicId;
-
+      
       // Create client based on network
       if (customEndpoint) {
         // Use custom/solo network
         const [host, port] = customEndpoint.split(':');
         
         console.log(`Using custom Hedera network at ${host}:${port}`);
-        this.client = Client.forNetwork({
-          [host]: new AccountId(accountId).shard.toString() + "." + new AccountId(accountId).realm.toString()
-        });
         
-        // Set custom node address
-        this.client.setMirrorNetwork([host + `:${port || 5600}`]);
+        // For read-only operations, we don't need credentials
+        if (accountId && privateKey) {
+          this.accountId = accountId;
+          this.privateKey = privateKey;
+          
+          this.client = Client.forNetwork({
+            [host]: new AccountId(accountId).shard.toString() + "." + new AccountId(accountId).realm.toString()
+          });
+          
+          // Set operator with account ID and private key
+          this.client.setOperator(accountId, privateKey);
+        } else {
+          // Create a client for mirror node access only (read-only)
+          this.client = Client.forName(network);
+          console.log("No credentials provided. Client will be limited to read-only operations.");
+        }
+        
+        // Set custom mirror node address
+        const mirrorPort = port || 5600;
+        this.mirrorNodeUrl = `${host}:${mirrorPort}`;
+        this.client.setMirrorNetwork([this.mirrorNodeUrl]);
+        
       } else if (network === "testnet") {
         this.client = Client.forTestnet();
+        if (accountId && privateKey) {
+          this.accountId = accountId;
+          this.privateKey = privateKey;
+          this.client.setOperator(accountId, privateKey);
+        } else {
+          console.log("No credentials provided. Client will be limited to read-only operations.");
+        }
       } else if (network === "mainnet") {
         this.client = Client.forMainnet();
+        if (accountId && privateKey) {
+          this.accountId = accountId;
+          this.privateKey = privateKey;
+          this.client.setOperator(accountId, privateKey);
+        } else {
+          console.log("No credentials provided. Client will be limited to read-only operations.");
+        }
       } else if (network === "previewnet") {
         this.client = Client.forPreviewnet();
+        if (accountId && privateKey) {
+          this.accountId = accountId;
+          this.privateKey = privateKey;
+          this.client.setOperator(accountId, privateKey);
+        } else {
+          console.log("No credentials provided. Client will be limited to read-only operations.");
+        }
       } else {
         throw new Error("Invalid network specified");
       }
 
-      // Set operator with account ID and private key
-      this.client.setOperator(accountId, privateKey);
-
       console.log(`Initialized Hedera client for ${customEndpoint ? 'custom network' : network}`);
-      console.log(`Using account ID: ${accountId}`);
+      if (accountId) {
+        console.log(`Using account ID: ${accountId}`);
+      }
       if (topicId) {
         console.log(`Using topic ID: ${topicId}`);
       }
@@ -62,8 +98,13 @@ class HederaClient {
     }
   }
 
-  // Create a new topic
+  // Create a new topic (requires credentials)
   async createTopic() {
+    if (!this.accountId || !this.privateKey) {
+      console.error("Cannot create topic: No credentials provided");
+      return null;
+    }
+    
     try {
       const transaction = new TopicCreateTransaction();
       const txResponse = await transaction.execute(this.client);
@@ -77,10 +118,15 @@ class HederaClient {
     }
   }
 
-  // Submit a message to the topic
+  // Submit a message to the topic (requires credentials)
   async submitMessage(message) {
     if (!this.topicId) {
       console.error("No topic ID specified");
+      return false;
+    }
+    
+    if (!this.accountId || !this.privateKey) {
+      console.error("Cannot submit message: No credentials provided");
       return false;
     }
 
@@ -102,7 +148,7 @@ class HederaClient {
     }
   }
 
-  // Subscribe to a topic and listen for messages
+  // Subscribe to a topic and listen for messages (no credentials required)
   subscribeToTopic(callback) {
     if (!this.topicId) {
       console.error("No topic ID specified");

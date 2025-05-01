@@ -75,78 +75,76 @@ const createWindow = () => {
   // Remove menu bar
   mainWindow.setMenuBarVisibility(false)
 
-  // Initialize Hedera client if credentials are available
+  // Initialize Hedera client if topic ID is available
   initializeHedera();
 }
 
 // Initialize Hedera client and subscribe to topic
 function initializeHedera() {
-  if (hederaAccountId && hederaPrivateKey) {
-    // Initialize client
-    const customEndpoint = hederaCustomEndpoint || null;
-    console.log("Network configuration:", {
-      network: hederaNetwork,
-      customEndpoint: customEndpoint,
-      customMirrorEndpoint: hederaCustomMirrorEndpoint || null
-    });
-    
-    const success = hederaClient.init(
-      hederaAccountId,
-      hederaPrivateKey,
-      hederaNetwork,
-      hederaTopicId,
-      customEndpoint
-    );
-
-    if (success) {
-      // If we have a topic ID, subscribe to it
-      if (hederaTopicId) {
-        hederaClient.subscribeToTopic((message) => {
-          console.log('Received message:', message);
-          
-          // Only forward message objects with name and message fields
-          if (typeof message === 'object' && message.name && message.message) {
-            mainWindow.webContents.send('hcs-message', message);
-          } else if (typeof message === 'string') {
-            // Try to parse as JSON if it's a string
-            try {
-              const parsedMessage = JSON.parse(message);
-              if (parsedMessage.name && parsedMessage.message) {
-                mainWindow.webContents.send('hcs-message', parsedMessage);
-              }
-            } catch (e) {
-              // Not a JSON string or doesn't have required fields
-              console.log('Message format not supported:', message);
-            }
-          }
-        });
-        mainWindow.webContents.send('hcs-connection-status', {
-          connected: true,
-          topicId: hederaTopicId,
-          network: customEndpoint ? 'custom' : hederaNetwork
-        });
-      } else {
-        console.log('No topic ID specified. Will not subscribe to any topics.');
-        mainWindow.webContents.send('hcs-connection-status', {
-          connected: false,
-          error: 'No topic ID specified',
-          network: customEndpoint ? 'custom' : hederaNetwork
-        });
-      }
-    } else {
-      console.error('Failed to initialize Hedera client');
-      mainWindow.webContents.send('hcs-connection-status', {
-        connected: false,
-        error: 'Failed to initialize Hedera client',
-        network: customEndpoint ? 'custom' : hederaNetwork
-      });
-    }
-  } else {
-    console.log('Hedera credentials not found. Running without Hedera connection.');
+  // Check if we have a topic ID - that's the minimum requirement
+  if (!hederaTopicId) {
     mainWindow.webContents.send('hcs-connection-status', {
       connected: false,
-      error: 'Credentials not found',
-      network: hederaCustomEndpoint ? 'custom' : hederaNetwork
+      error: 'No topic ID specified',
+      network: hederaCustomEndpoint ? 'custom' : hederaNetwork,
+      readOnly: true
+    });
+    console.log('No topic ID specified. Will not subscribe to any topics.');
+    return;
+  }
+
+  // Initialize client with whatever credentials we have (can be null for read-only)
+  const customEndpoint = hederaCustomEndpoint || null;
+  console.log("Network configuration:", {
+    network: hederaNetwork,
+    customEndpoint: customEndpoint,
+    customMirrorEndpoint: hederaCustomMirrorEndpoint || null,
+    topicId: hederaTopicId,
+    hasCredentials: !!(hederaAccountId && hederaPrivateKey)
+  });
+  
+  const success = hederaClient.init(
+    hederaAccountId,
+    hederaPrivateKey,
+    hederaNetwork,
+    hederaTopicId,
+    customEndpoint
+  );
+
+  if (success) {
+    // Subscribe to the topic
+    hederaClient.subscribeToTopic((message) => {
+      console.log('Received message:', message);
+      
+      // Only forward message objects with name and message fields
+      if (typeof message === 'object' && message.name && message.message) {
+        mainWindow.webContents.send('hcs-message', message);
+      } else if (typeof message === 'string') {
+        // Try to parse as JSON if it's a string
+        try {
+          const parsedMessage = JSON.parse(message);
+          if (parsedMessage.name && parsedMessage.message) {
+            mainWindow.webContents.send('hcs-message', parsedMessage);
+          }
+        } catch (e) {
+          // Not a JSON string or doesn't have required fields
+          console.log('Message format not supported:', message);
+        }
+      }
+    });
+    
+    mainWindow.webContents.send('hcs-connection-status', {
+      connected: true,
+      topicId: hederaTopicId,
+      network: customEndpoint ? 'custom' : hederaNetwork,
+      readOnly: !(hederaAccountId && hederaPrivateKey)
+    });
+  } else {
+    console.error('Failed to initialize Hedera client');
+    mainWindow.webContents.send('hcs-connection-status', {
+      connected: false,
+      error: 'Failed to initialize Hedera client',
+      network: customEndpoint ? 'custom' : hederaNetwork
     });
   }
 }
@@ -158,6 +156,15 @@ ipcMain.on('create-topic', async (event) => {
     return;
   }
 
+  if (!hederaAccountId || !hederaPrivateKey) {
+    event.reply('hcs-connection-status', { 
+      connected: false, 
+      error: 'Cannot create topic: No credentials provided',
+      readOnly: true
+    });
+    return;
+  }
+
   try {
     const topicId = await hederaClient.createTopic();
     if (topicId) {
@@ -165,7 +172,8 @@ ipcMain.on('create-topic', async (event) => {
       event.reply('hcs-connection-status', {
         connected: true,
         topicId: hederaTopicId,
-        network: hederaCustomEndpoint ? 'custom' : hederaNetwork
+        network: hederaCustomEndpoint ? 'custom' : hederaNetwork,
+        readOnly: false
       });
       
       // Subscribe to the newly created topic
@@ -190,13 +198,24 @@ ipcMain.on('submit-message', async (event, message) => {
     return;
   }
 
+  if (!hederaAccountId || !hederaPrivateKey) {
+    event.reply('hcs-connection-status', { 
+      connected: true, 
+      error: 'Cannot submit message: No credentials provided',
+      topicId: hederaClient.topicId.toString(),
+      readOnly: true
+    });
+    return;
+  }
+
   try {
     const success = await hederaClient.submitMessage(message);
     event.reply('hcs-connection-status', { 
       connected: true, 
       topicId: hederaClient.topicId.toString(),
       messageStatus: success ? 'sent' : 'failed',
-      network: hederaCustomEndpoint ? 'custom' : hederaNetwork
+      network: hederaCustomEndpoint ? 'custom' : hederaNetwork,
+      readOnly: false
     });
   } catch (error) {
     console.error('Error submitting message:', error);

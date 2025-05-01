@@ -77,6 +77,10 @@
       background-color: #fd7e14;
       color: white;
     }
+    .readonly-badge {
+      background-color: #dc3545;
+      color: white;
+    }
     .drag-area {
       position: absolute;
       top: 0;
@@ -141,15 +145,20 @@
     function formatHcsStatus(status) {
       let statusText = '';
       let networkBadge = '';
+      let readOnlyBadge = '';
       
       if (status.network) {
         networkBadge = `<span class="network-badge network-${status.network}">${status.network}</span>`;
       }
       
+      if (status.readOnly) {
+        readOnlyBadge = `<span class="network-badge readonly-badge">read-only</span>`;
+      }
+      
       if (status.connected) {
-        statusText = `HCS: Connected to topic ${status.topicId}${networkBadge}`;
+        statusText = `HCS: Connected to topic ${status.topicId}${networkBadge}${readOnlyBadge}`;
       } else {
-        statusText = `HCS: Disconnected (${status.error || 'unknown error'})${networkBadge}`;
+        statusText = `HCS: Disconnected (${status.error || 'unknown error'})${networkBadge}${readOnlyBadge}`;
       }
       
       return statusText;
