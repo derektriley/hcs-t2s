@@ -45,47 +45,6 @@
       line-height: 1.4;
       color: white;
     }
-    .queue-stats {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      font-size: 12px;
-      color: white;
-    }
-    .hcs-status {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      font-size: 12px;
-      color: #ccc;
-    }
-    .network-badge {
-      display: inline-block;
-      padding: 2px 5px;
-      border-radius: 3px;
-      font-size: 10px;
-      margin-left: 5px;
-    }
-    .network-testnet {
-      background-color: #6c757d;
-      color: white;
-    }
-    .network-mainnet {
-      background-color: #28a745;
-      color: white;
-    }
-    .network-previewnet {
-      background-color: #17a2b8;
-      color: white;
-    }
-    .network-custom {
-      background-color: #fd7e14;
-      color: white;
-    }
-    .readonly-badge {
-      background-color: #dc3545;
-      color: white;
-    }
     .drag-area {
       position: absolute;
       top: 0;
@@ -102,8 +61,6 @@
     <div class="name" id="name-display">Loading messages...</div>
     <div class="message" id="message-display">Please wait</div>
   </div>
-  <div class="queue-stats" id="queue-stats">Queue: 0</div>
-  <div class="hcs-status" id="hcs-status">HCS: Connecting...</div>
 
   <script>
     // Message queue system
@@ -113,8 +70,6 @@
     const container = document.getElementById('message-container');
     const nameDisplay = document.getElementById('name-display');
     const messageDisplay = document.getElementById('message-display');
-    const queueStats = document.getElementById('queue-stats');
-    const hcsStatus = document.getElementById('hcs-status');
     
     // Animation variables
     let animationRunning = false;
@@ -185,11 +140,9 @@
         currentItem = messageQueue[currentIndex];
         nameDisplay.textContent = currentItem.name;
         messageDisplay.textContent = currentItem.message;
-        queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
       } else {
         // Hide the container when there are no messages
         container.style.display = 'none';
-        queueStats.textContent = "Queue: 0";
       }
       
       // Start animation loop
@@ -380,9 +333,6 @@
           if (messageQueue.length > 0) {
             currentIndex = (currentIndex + 1) % messageQueue.length;
             currentItem = messageQueue[currentIndex];
-            
-            // Update queue counter
-            queueStats.textContent = `Queue: ${messageQueue.length - currentIndex}`;
           }
           
           fadeState = 'in';
@@ -416,10 +366,6 @@
       processedMessages.add(messageId);
       messageQueue.push({ name, message });
       
-      // Update the queue counter
-      const remaining = messageQueue.length - currentIndex;
-      queueStats.textContent = `Queue: ${remaining > 0 ? remaining : messageQueue.length}`;
-      
       // Limit size of processed set to avoid memory leaks
       if (processedMessages.size > 100) {
         const iterator = processedMessages.values();
@@ -432,13 +378,11 @@
       // Handle connection status updates
       window.api.receive('hcs-connection-status', (status) => {
         console.log('HCS connection status:', status);
-        hcsStatus.innerHTML = formatHcsStatus(status);
       });
       
       // Handle queue updates
       window.api.receive('queue-update', (count) => {
         console.log('Queue update:', count);
-        queueStats.textContent = `Queue: ${count}`;
       });
       
       // Handle incoming messages
@@ -465,7 +409,6 @@
       });
     } else {
       console.warn('API not available. Running in browser mode without Hedera connection.');
-      hcsStatus.textContent = 'HCS: API not available';
     }
     
     // Start the force rendering to keep animations running in background

@@ -9,7 +9,8 @@ const {
   Hbar,
   CustomFixedFee,
   CustomRoyaltyFee,
-  TopicId
+  TopicId,
+  TransferTransaction
 } = require("@hashgraph/sdk");
 require('dotenv').config();
 const yargs = require('yargs/yargs');
@@ -39,7 +40,15 @@ const argv = yargs(hideBin(process.argv))
       default: 1000
     }
   })
-  .demandCommand(1, 'You need to specify a command: create or send')
+  .command('transfer', 'Send HBAR from streamer to viewer account', {
+    amount: {
+      description: 'Amount of HBAR to transfer',
+      alias: 'a',
+      type: 'number',
+      demandOption: true
+    }
+  })
+  .demandCommand(1, 'You need to specify a command: create, send, or transfer')
   .help()
   .alias('help', 'h')
   .argv;
@@ -207,6 +216,28 @@ async function sendMessages(topicId, count, interval) {
   console.log("\nAll messages submitted successfully!");
 }
 
+async function transferHbar(amount) {
+  console.log(`Transferring ${amount} HBAR from streamer to viewer account...`);
+  
+  try {
+    const streamerClient = client.setOperator(streamerAccountId, streamerPrivateKey);
+    
+    const transaction = new TransferTransaction()
+      .addHbarTransfer(streamerAccountId, new Hbar(-amount)) // Subtract from streamer
+      .addHbarTransfer(viewerAccountId, new Hbar(amount))    // Add to viewer
+      .setTransactionMemo("HCS TTS HBAR transfer");
+    
+    const txResponse = await transaction.execute(streamerClient);
+    const receipt = await txResponse.getReceipt(streamerClient);
+    
+    console.log(`Transfer successful! Transaction ID: ${txResponse.transactionId.toString()}`);
+    console.log(`Status: ${receipt.status}`);
+  } catch (error) {
+    console.error("Error transferring HBAR:", error);
+    process.exit(1);
+  }
+}
+
 async function main() {
   console.log("Hedera Message Streamer CLI");
   console.log(`Network: ${network}`);
@@ -228,6 +259,10 @@ async function main() {
     const { topicId, count, interval } = argv;
     console.log(`Using existing topic: ${topicId}`);
     await sendMessages(topicId, count, interval);
+  } else if (command === 'transfer') {
+    // Transfer HBAR from streamer to viewer
+    const { amount } = argv;
+    await transferHbar(amount);
   }
 }
 
