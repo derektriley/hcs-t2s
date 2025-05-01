@@ -2,6 +2,8 @@
 
 A real-time message streaming application that displays and reads out messages from a Hedera Consensus Service (HCS) topic. Built with Electron and featuring text-to-speech capabilities.
 
+![Dashboard Screenshot](assets/dashboard.png)
+
 ## Features
 
 - **Real-time Message Streaming**: Connect to any Hedera Consensus Service (HCS) topic to receive messages in real-time
