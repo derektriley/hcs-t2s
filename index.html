@@ -198,6 +198,45 @@
       requestAnimationFrame(animationFrame);
     }
     
+    // Function to speak the message using text-to-speech
+    function speakMessage(name, message) {
+      // Don't speak system messages
+      if (name === "System") {
+        console.log("Skipping TTS for system message");
+        return Promise.resolve(); // Return resolved promise for system messages
+      }
+      
+      if ('speechSynthesis' in window) {
+        // Cancel any pending speech first
+        window.speechSynthesis.cancel();
+        
+        return new Promise((resolve) => {
+          const speech = new SpeechSynthesisUtterance();
+          speech.text = `${name} sent a message: ${message}`;
+          speech.volume = 1;
+          speech.rate = 1;
+          speech.pitch = 1;
+          
+          // Add event listener for when speech completes
+          speech.onend = () => {
+            console.log("Speech completed");
+            // Add 1 second delay after speech completes
+            setTimeout(resolve, 1000);
+          };
+          
+          // Add error handler in case speech fails
+          speech.onerror = (event) => {
+            console.error("Speech error:", event);
+            resolve(); // Resolve anyway to prevent blocking
+          };
+          
+          window.speechSynthesis.speak(speech);
+        });
+      } else {
+        return Promise.resolve(); // Return resolved promise if speech synthesis not available
+      }
+    }
+    
     // Main animation frame
     function animationFrame(timestamp) {
       if (!animationRunning) return;
@@ -220,11 +259,23 @@
           fadeState = 'display';
           timeElapsed = 0;
           
-          // Speak the message
+          // Speak the message and wait for completion
           if (currentItem) {
-            speakMessage(currentItem.name, currentItem.message);
+            speakMessage(currentItem.name, currentItem.message)
+              .then(() => {
+                // Now enter the display state
+                fadeState = 'display';
+                timeElapsed = 0;
+              });
+            // Set a temporary state while speaking
+            fadeState = 'speaking';
+          } else {
+            fadeState = 'display';
           }
         }
+      } else if (fadeState === 'speaking') {
+        // Do nothing while speech is in progress
+        // The promise callback will move us to the next state
       } else if (fadeState === 'display') {
         // Display duration (8000ms)
         if (timeElapsed >= 8000) {
@@ -255,27 +306,6 @@
       
       // Continue animation loop
       requestAnimationFrame(animationFrame);
-    }
-    
-    // Function to speak the message using text-to-speech
-    function speakMessage(name, message) {
-      // Don't speak system messages
-      if (name === "System") {
-        console.log("Skipping TTS for system message");
-        return;
-      }
-      
-      if ('speechSynthesis' in window) {
-        // Cancel any pending speech first
-        window.speechSynthesis.cancel();
-        
-        const speech = new SpeechSynthesisUtterance();
-        speech.text = `${name} sent a message: ${message}`;
-        speech.volume = 1;
-        speech.rate = 1;
-        speech.pitch = 1;
-        window.speechSynthesis.speak(speech);
-      }
     }
     
     // Add a new message to the queue

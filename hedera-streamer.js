@@ -69,6 +69,54 @@ const viewerPrivateKey = PrivateKey.fromStringDer(process.env.VIEWER_PRIVATE_KEY
 let client;
 const network = process.env.HEDERA_NETWORK.toLowerCase();
 
+// Humorous crypto-related streamer names
+const humorousStreamers = [
+  "HODLHarold",
+  "SatoshisSister",
+  "DiamondHands42",
+  "CryptoClown",
+  "BlockchainBarbarian",
+  "TokenTosser",
+  "GasFeeGuru",
+  "MoonboySam",
+  "LamboLarry",
+  "DeFiDiva",
+  "WhaleWatcher",
+  "RektRambler",
+  "HashRateHero",
+  "NFTNerd",
+  "DumpDetective",
+  "StablecoinSage",
+  "MinerMike",
+  "AltcoinAlice",
+  "RugPullRanger",
+  "FOMOFighter"
+];
+
+// Humorous crypto-related messages
+const humorousMessages = [
+  "Just mortgaged my house to buy the dip. Wife still doesn't know. Bullish!",
+  "My portfolio is so red it's giving tomatoes an inferiority complex.",
+  "Who needs a retirement plan when you've got 69 different altcoins?",
+  "I told my kids that blockchain is like a digital cookie jar where everyone can see how many cookies there are, but nobody can steal them.",
+  "My crypto strategy: buy high, sell low, cry in the shower.",
+  "I'm so bullish on this coin that I've started eating grass.",
+  "My wife asked what NFT stands for. I told her 'Not For Traders' who can't handle volatility.",
+  "I don't always HODL, but when I do, I panic sell right before a 500% pump.",
+  "Dear Bitcoin, my therapist says it's not healthy how often I check on you.",
+  "Investing strategy: one part technical analysis, two parts astrology, three parts blind hope.",
+  "They say diversify your portfolio, so I own 28 coins that all do exactly the same thing.",
+  "My dog chewed up my hardware wallet. Now he's worth more than my car.",
+  "I'm so deep into DeFi that my credit score is just my wallet address.",
+  "My boyfriend dumped me for checking crypto prices during our anniversary dinner. Anyway, looking for someone who appreciates financial independence.",
+  "I named my Wi-Fi 'SEC Investigation Van' just to scare my crypto neighbors.",
+  "I'm on a seafood diet with crypto: I see a dip, I buy it.",
+  "Told my boss I'm quitting when Bitcoin reaches 100k. It's been 3 years and I still have this job.",
+  "My crypto portfolio is like my dating life: high expectations, disappointing results.",
+  "I don't need a gym membership, I get plenty of exercise jumping to conclusions about price movements.",
+  "I've got diamond hands but a paper wallet. What could go wrong?"
+];
+
 switch (network) {
   case 'mainnet':
     client = Client.forMainnet();
@@ -116,12 +164,18 @@ async function createTopic() {
 
 async function submitMessage(topicId, messageNumber) {
   const viewerClient = client.setOperator(viewerAccountId, viewerPrivateKey);
+  
+  // Select a random name and message
+  const randomNameIndex = Math.floor(Math.random() * humorousStreamers.length);
+  const randomMessageIndex = Math.floor(Math.random() * humorousMessages.length);
+  
   const message = {
-    name: `Viewer ${messageNumber}`,
-    message: `This is test message #${messageNumber} from the CLI streamer`
+    name: humorousStreamers[randomNameIndex],
+    message: humorousMessages[randomMessageIndex]
   };
   
-  console.log(`Submitting message #${messageNumber} to topic ${topicId}...`);
+  console.log(`Submitting message #${messageNumber} from ${message.name} to topic ${topicId}...`);
+  console.log(`Message: "${message.message}"`);
   
   try {
     const transaction = new TopicMessageSubmitTransaction()
